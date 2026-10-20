@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 venv/
 .env
+ARAG_Colab.ipynb
 .ipynb_checkpoints/
 .pytest_cache/
 .mypy_cache/
