@@ -1,0 +1,2 @@
+question,reference_answer,expected_source_file,expected_source_page,expected_chunk_id,is_answerable,model_1_answer,model_1_correct,model_1_citation_correct,model_1_latency_ms,model_2_answer,model_2_correct,model_2_citation_correct,model_2_latency_ms,model_3_answer,model_3_correct,model_3_citation_correct,model_3_latency_ms,notes
+"What is the document mainly about?","Add a verified reference answer","source.pdf","1","chunk-id",true,,,,,,,,,,,,"Include answerable and unanswerable cases"

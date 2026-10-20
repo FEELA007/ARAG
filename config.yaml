@@ -1,0 +1,47 @@
+project:
+  name: ARAG
+  version: "0.1.0"
+
+paths:
+  raw: data/raw
+  processed: data/processed
+  index: data/index
+
+ingestion:
+  chunk_size: 1000
+  chunk_overlap: 150
+  supported_extensions: [".pdf", ".docx", ".txt"]
+
+embeddings:
+  model: sentence-transformers/all-MiniLM-L6-v2
+  batch_size: 32
+  normalize: true
+
+retrieval:
+  dense_top_k: 8
+  bm25_top_k: 8
+  final_top_k: 6
+  rrf_k: 60
+
+reranker:
+  enabled: false
+  model: cross-encoder/ms-marco-MiniLM-L-6-v2
+  top_k: 5
+
+router:
+  cheap_threshold: 0.72
+  medium_threshold: 0.84
+  high_threshold: 0.93
+
+generation:
+  enabled: false
+  model: google/flan-t5-base
+  max_new_tokens: 256
+  temperature: 0.0
+
+cache:
+  enabled: true
+  similarity_threshold: 0.92
+
+security:
+  default_permission: public
