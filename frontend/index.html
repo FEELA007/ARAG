@@ -12,95 +12,422 @@
     <aside class="sidebar">
       <a class="brand" href="#" aria-label="ARAG home">
         <span class="brand-mark"><span></span><span></span><span></span></span>
-        <span class="brand-copy"><strong>ARAG</strong><small>RETRIEVAL WORKSPACE</small></span>
+        <span class="brand-copy">
+          <strong>ARAG</strong>
+          <small>RETRIEVAL WORKSPACE</small>
+        </span>
       </a>
-      <button class="new-chat" id="newChatBtn"><span class="plus">＋</span> New conversation <kbd>⌘ K</kbd></button>
+      <button class="new-chat" id="newChatBtn">
+        <span class="plus">＋</span>
+        New conversation
+        <kbd>⌘ K</kbd>
+      </button>
       <div class="side-section">
         <div class="section-label">WORKSPACE</div>
-        <button class="nav-item active"><span class="nav-icon">◈</span> Document chat</button>
-        <button class="nav-item" id="sourcesNav"><span class="nav-icon">▤</span> Sources <span class="count" id="sourceCount">0</span></button>
-        <button class="nav-item" id="metricsNav"><span class="nav-icon">⌁</span> Retrieval metrics</button>
+        <button class="nav-item active">
+          <span class="nav-icon">◈</span>
+          Document chat
+        </button>
+        <button class="nav-item" id="sourcesNav">
+          <span class="nav-icon">▤</span>
+          Sources
+          <span class="count" id="sourceCount">0</span>
+        </button>
+        <button class="nav-item" id="metricsNav">
+          <span class="nav-icon">⌁</span>
+          Retrieval metrics
+        </button>
       </div>
       <div class="sidebar-spacer"></div>
       <div class="sidebar-status">
         <span class="status-dot"></span>
-        <div><strong>Local workspace</strong><small>Documents stay on your machine</small></div>
+        <div>
+          <strong>Local workspace</strong>
+          <small>Documents stay on your machine</small>
+        </div>
       </div>
-      <div class="sidebar-footer">ARAG ADVANCED <span>v1.0 · LOCAL</span></div>
+      <div class="sidebar-footer">
+        ARAG ADVANCED
+        <span>v1.0 · LOCAL</span>
+      </div>
     </aside>
 
     <main class="main-area">
       <header class="topbar">
-        <div class="breadcrumbs"><span>Workspace</span><b>/</b><strong>Document chat</strong></div>
-        <div class="topbar-right"><span class="prototype-pill"><i></i> ARAG ADVANCED</span><button class="icon-button" id="settingsBtn" aria-label="Token settings">⚙</button><button class="icon-button" id="helpBtn" aria-label="About this system">?</button><div class="avatar">A</div></div>
+        <div class="breadcrumbs">
+          <span>Workspace</span>
+          <b>/</b>
+          <strong>Document chat</strong>
+        </div>
+        <div class="topbar-right">
+          <span class="prototype-pill"><i></i> ARAG ADVANCED</span>
+          <button class="icon-button" id="settingsBtn" aria-label="Token settings">⚙</button>
+          <button class="icon-button" id="helpBtn" aria-label="About this system">?</button>
+          <div class="avatar">A</div>
+        </div>
       </header>
 
       <div class="workspace-content">
         <section class="welcome-row">
           <div>
-            <div class="eyebrow"><span class="eyebrow-line"></span> ADAPTIVE RETRIEVAL-AUGMENTED GENERATION</div>
+            <div class="eyebrow">
+              <span class="eyebrow-line"></span>
+              ADAPTIVE RETRIEVAL-AUGMENTED GENERATION
+            </div>
             <h1>Ask your documents<span>.</span></h1>
             <p class="subtitle">Ground answers in your files. Inspect the evidence. Compare three model backends in one workspace.</p>
           </div>
-          <div class="privacy-note"><span class="lock-icon">▣</span><span><strong>Private by design</strong><small>Local-first prototype</small></span></div>
+          <div class="privacy-note">
+            <span class="lock-icon">▣</span>
+            <span>
+              <strong>Private by design</strong>
+              <small>Local-first prototype</small>
+            </span>
+          </div>
         </section>
 
         <section class="control-grid">
           <article class="panel document-panel" id="documentPanel">
-            <div class="panel-heading"><div class="heading-icon purple">▤</div><div><h2>Knowledge source</h2><p id="uploadLimitText">Lite: 1 document · 10 MB per file</p></div><span class="step-number">01</span></div>
+            <div class="panel-heading">
+              <div class="heading-icon purple">▤</div>
+              <div>
+                <h2>Knowledge source</h2>
+                <p id="uploadLimitText">Lite: 1 document · 10 MB per file</p>
+              </div>
+              <span class="step-number">01</span>
+            </div>
             <label class="dropzone" id="dropzone" for="fileInput">
               <input id="fileInput" type="file" accept=".pdf,.docx,.txt" multiple />
-              <span class="upload-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15.5v3A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg></span>
+              <span class="upload-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15.5v3A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5v-3"/>
+                </svg>
+              </span>
               <strong>Drop a file here, or <em>browse</em></strong>
               <small>PDF, DOCX or TXT · 10 MB per file · count depends on tier</small>
             </label>
             <div class="file-card hidden" id="fileCard">
               <div class="file-type" id="fileType">PDF</div>
-              <div class="file-details"><strong id="fileName">document.pdf</strong><small id="fileSize">0 MB · Ready to process</small><div class="file-progress"><span></span></div></div>
+              <div class="file-details">
+                <strong id="fileName">document.pdf</strong>
+                <small id="fileSize">0 MB · Ready to process</small>
+                <div class="file-progress"><span></span></div>
+              </div>
               <button class="remove-file" id="removeFile" aria-label="Remove document">×</button>
             </div>
-            <div class="document-footer"><span class="muted-dot"></span><span id="documentStatus">No document loaded</span><span class="footer-spacer"></span><span class="format-label" id="fileModeLabel">1 FILE MAX</span></div>
+            <div class="document-footer">
+              <span class="muted-dot"></span>
+              <span id="documentStatus">No document loaded</span>
+              <span class="footer-spacer"></span>
+              <span class="format-label" id="fileModeLabel">1 FILE MAX</span>
+            </div>
           </article>
 
           <article class="panel model-panel">
-            <div class="panel-heading"><div class="heading-icon blue">⌘</div><div><h2>Model configuration</h2><p>Same UI · Switchable backend</p></div><span class="step-number">02</span></div>
+            <div class="panel-heading">
+              <div class="heading-icon blue">⌘</div>
+              <div>
+                <h2>Model configuration</h2>
+                <p>Same UI · Switchable backend</p>
+              </div>
+              <span class="step-number">02</span>
+            </div>
             <label class="field-label" for="modelSelect">ACTIVE BACKEND</label>
-            <div class="select-wrap"><select id="modelSelect"><option value="model_1">Model 1 — Lite · 75% target</option><option value="model_2">Model 2 — Balanced · 85% target</option><option value="model_3">Model 3 — Advanced · 95% target</option></select><span class="select-chevron">⌄</span></div>
-            <div class="model-summary"><div class="model-orb"><span></span><span></span><span></span></div><div><strong id="modelTitle">ARAG Lite</strong><small id="modelDescription">MiniLM dense retrieval · 1 document</small></div><span class="ready-tag"><i></i> SELECTED</span></div>
-            <div class="model-footnote" id="modelFootnote"><span>ⓘ</span> Accuracy percentages are evaluation targets, not verified results.</div>
+            <div class="select-wrap">
+              <select id="modelSelect">
+                <option value="model_1">Model 1 — Lite · 75% target</option>
+                <option value="model_2">Model 2 — Balanced · 85% target</option>
+                <option value="model_3">Model 3 — Advanced · 95% target</option>
+              </select>
+              <span class="select-chevron">⌄</span>
+            </div>
+            <div class="model-summary">
+              <div class="model-orb"><span></span><span></span><span></span></div>
+              <div>
+                <strong id="modelTitle">ARAG Lite</strong>
+                <small id="modelDescription">MiniLM dense retrieval · 1 document</small>
+              </div>
+              <span class="ready-tag"><i></i> SELECTED</span>
+            </div>
+            <div class="model-footnote" id="modelFootnote">
+              <span>ⓘ</span>
+              Accuracy percentages are evaluation targets, not verified results.
+            </div>
           </article>
         </section>
 
         <section class="chat-layout">
           <article class="panel chat-panel">
-            <div class="chat-header"><div class="chat-title"><div class="heading-icon green">✳</div><div><h2>Document conversation</h2><p>Ask questions grounded in your source</p></div></div><button class="subtle-button" id="clearChatBtn">↺ <span>Clear chat</span></button></div>
+            <div class="chat-header">
+              <div class="chat-title">
+                <div class="heading-icon green">✳</div>
+                <div>
+                  <h2>Document conversation</h2>
+                  <p>Ask questions grounded in your source</p>
+                </div>
+              </div>
+              <button class="subtle-button" id="clearChatBtn">
+                ↺ <span>Clear chat</span>
+              </button>
+            </div>
             <div class="chat-body" id="chatBody">
               <div class="empty-state" id="emptyState">
-                <div class="empty-graphic"><div class="graphic-ring ring-one"></div><div class="graphic-ring ring-two"></div><div class="graphic-core">A<span>✳</span></div><div class="graphic-node node-one"></div><div class="graphic-node node-two"></div><div class="graphic-node node-three"></div></div>
+                <div class="empty-graphic">
+                  <div class="graphic-ring ring-one"></div>
+                  <div class="graphic-ring ring-two"></div>
+                  <div class="graphic-core">A<span>✳</span></div>
+                  <div class="graphic-node node-one"></div>
+                  <div class="graphic-node node-two"></div>
+                  <div class="graphic-node node-three"></div>
+                </div>
                 <h3>Your documents, made queryable.</h3>
                 <p>Upload a document to prepare your workspace, then ask a focused question. Answers and evidence will appear here.</p>
-                <div class="suggestion-row"><button class="suggestion" data-question="Summarize the main points">Summarize the main points <span>↗</span></button><button class="suggestion" data-question="What are the key findings?">Find key findings <span>↗</span></button><button class="suggestion" data-question="What evidence supports the conclusion?">Check supporting evidence <span>↗</span></button></div>
+                <div class="suggestion-row">
+                  <button class="suggestion" data-question="Summarize the main points">
+                    Summarize the main points <span>↗</span>
+                  </button>
+                  <button class="suggestion" data-question="What are the key findings?">
+                    Find key findings <span>↗</span>
+                  </button>
+                  <button class="suggestion" data-question="What evidence supports the conclusion?">
+                    Check supporting evidence <span>↗</span>
+                  </button>
+                </div>
               </div>
             </div>
             <div class="chat-composer">
-              <div class="composer-context"><span class="context-dot"></span><span id="composerContext">Waiting for a document</span><span class="composer-model" id="composerModel">MODEL 1</span></div>
-              <form id="questionForm" class="composer-form"><textarea id="questionInput" rows="1" placeholder="Ask a question about your document…" aria-label="Question" disabled></textarea><button id="sendBtn" class="send-button" type="submit" disabled aria-label="Send question"><svg viewBox="0 0 24 24"><path d="M12 19V5m0 0L6.5 10.5M12 5l5.5 5.5"/></svg></button></form>
-              <div class="composer-bottom"><span><kbd>Enter</kbd> to send · <kbd>Shift + Enter</kbd> for a new line</span><span>Verify answers against source evidence</span></div>
+              <div class="composer-context">
+                <span class="context-dot"></span>
+                <span id="composerContext">Waiting for a document</span>
+                <span class="composer-model" id="composerModel">MODEL 1</span>
+              </div>
+              <form id="questionForm" class="composer-form">
+                <textarea
+                  id="questionInput"
+                  rows="1"
+                  placeholder="Ask a question about your document…"
+                  aria-label="Question"
+                  disabled
+                ></textarea>
+                <button
+                  id="sendBtn"
+                  class="send-button"
+                  type="submit"
+                  disabled
+                  aria-label="Send question"
+                >
+                  <svg viewBox="0 0 24 24">
+                    <path d="M12 19V5m0 0L6.5 10.5M12 5l5.5 5.5"/>
+                  </svg>
+                </button>
+              </form>
+              <div class="composer-bottom">
+                <span><kbd>Enter</kbd> to send · <kbd>Shift + Enter</kbd> for a new line</span>
+                <span>Verify answers against source evidence</span>
+              </div>
             </div>
           </article>
 
           <aside class="right-column">
-            <article class="panel evidence-panel" id="evidencePanel"><div class="right-panel-heading"><div><h2>Evidence & sources</h2><p>Retrieved passages will appear here</p></div><span class="source-badge" id="evidenceCount">0</span></div><div class="evidence-empty"><div class="evidence-icon">⌕</div><strong>No evidence yet</strong><p>Once a question is processed, the most relevant passages and their source details will be shown here.</p></div><div class="evidence-list hidden" id="evidenceList"></div></article>
-            <article class="panel metrics-panel" id="metricsPanel"><div class="right-panel-heading"><div><h2>Run overview</h2><p>Current session</p></div><span class="live-indicator"><i></i> LIVE</span></div><div class="metric-row"><div><small>Document chunks</small><strong id="chunkMetric">—</strong></div><div><small>Retrieved passages</small><strong id="retrievedMetric">—</strong></div></div><div class="metric-row"><div><small>Response latency</small><strong id="latencyMetric">—</strong></div><div><small>Active backend</small><strong class="metric-model" id="backendMetric">MODEL 1</strong></div></div><div class="metrics-note"><span>ⓘ</span> Similarity scores indicate relevance, not answer accuracy. Accuracy targets must be benchmarked.</div></article>
+            <article class="panel evidence-panel" id="evidencePanel">
+              <div class="right-panel-heading">
+                <div>
+                  <h2>Evidence & sources</h2>
+                  <p>Retrieved passages will appear here</p>
+                </div>
+                <span class="source-badge" id="evidenceCount">0</span>
+              </div>
+              <div class="evidence-empty">
+                <div class="evidence-icon">⌕</div>
+                <strong>No evidence yet</strong>
+                <p>
+                  Once a question is processed, the most relevant passages and
+                  their source details will be shown here.
+                </p>
+              </div>
+              <div class="evidence-list hidden" id="evidenceList"></div>
+            </article>
+
+            <article class="panel metrics-panel" id="metricsPanel">
+              <div class="right-panel-heading">
+                <div>
+                  <h2>Retrieval metrics</h2>
+                  <p>Measured for the latest query</p>
+                </div>
+                <span class="live-indicator"><i></i> LIVE</span>
+              </div>
+              <div class="metric-row">
+                <div>
+                  <small>Document chunks</small>
+                  <strong id="chunkMetric">—</strong>
+                </div>
+                <div>
+                  <small>Retrieved passages</small>
+                  <strong id="retrievedMetric">—</strong>
+                </div>
+              </div>
+              <div class="metric-row">
+                <div>
+                  <small>Response latency</small>
+                  <strong id="latencyMetric">—</strong>
+                </div>
+                <div>
+                  <small>Active backend</small>
+                  <strong class="metric-model" id="backendMetric">MODEL 1</strong>
+                </div>
+              </div>
+              <div class="metrics-note">
+                <span>ⓘ</span>
+                Similarity and reranker scores are relevance signals, not answer
+                accuracy.
+              </div>
+              <div class="trace-heading">PIPELINE TRACE</div>
+              <div id="pipelineTrace" class="pipeline-trace">
+                <p>Run a query to inspect the actual retrieval stages.</p>
+              </div>
+              <div class="trace-heading">PERFORMANCE BREAKDOWN</div>
+              <div class="metric-row">
+                <div>
+                  <small>Index build / cache</small>
+                  <strong id="indexBuildMetric">—</strong>
+                </div>
+                <div>
+                  <small>Retrieval + reranking</small>
+                  <strong id="retrievalTimeMetric">—</strong>
+                </div>
+              </div>
+
+              <div class="metric-row">
+                <div>
+                  <small>Generation time</small>
+                  <strong id="generationTimeMetric">—</strong>
+                </div>
+                <div>
+                  <small>GPU memory (allocated / reserved)</small>
+                  <strong id="gpuMemoryMetric">—</strong>
+                </div>
+              </div>
+
+              <div class="trace-heading">ACTIVE CONFIGURATION</div>
+              <div class="metrics-details">
+                <p>
+                  <small>Embedding model</small><br>
+                  <strong id="embeddingModelMetric">—</strong>
+                </p>
+
+                <p>
+                  <small>Reranker</small><br>
+                  <strong id="rerankerModelMetric">—</strong>
+                </p>
+
+                <p>
+                  <small>Generator</small><br>
+                  <strong id="generatorModelMetric">—</strong>
+                </p>
+
+                <p>
+                  <small>Retrieval strategy</small><br>
+                  <strong id="retrievalStrategyMetric">—</strong>
+                </p>
+
+                <p>
+                  <small>GPU device</small><br>
+                  <strong id="gpuDeviceMetric">—</strong>
+                </p>
+              </div>
+            </article>
+            <article class="panel sources-panel" id="sourcesPanel">
+              <div class="right-panel-heading">
+                <div>
+                  <h2>Indexed sources</h2>
+                  <p>Files in this workspace</p>
+                </div>
+                <span class="source-badge" id="indexedFileCount">0</span>
+              </div>
+              <div id="indexedSources" class="indexed-sources">
+                <p class="sources-placeholder">
+                  Upload PDF, DOCX or TXT files to populate the source list.
+                </p>
+              </div>
+            </article>
           </aside>
         </section>
-        <footer class="page-footer"><span><b>ARAG</b> · Adaptive, Reliable & Cost-Aware Retrieval-Augmented Generation</span><span>Built for transparent, evidence-grounded answers</span></footer>
+        <footer class="page-footer">
+          <span>
+            <b>ARAG</b> · Adaptive, Reliable & Cost-Aware Retrieval-Augmented
+            Generation
+          </span>
+          <span>Built for transparent, evidence-grounded answers</span>
+        </footer>
       </div>
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <dialog id="settingsDialog"><div class="dialog-content settings-content"><button class="dialog-close" id="closeSettings" aria-label="Close">×</button><div class="heading-icon purple">⚙</div><h2>ARAG settings</h2><p>Set the evidence-context token budget for each question. Each tier has its own cap and output-token limit.</p><label class="settings-label" for="tokenBudget">EVIDENCE CONTEXT BUDGET</label><div class="budget-row"><input id="tokenBudget" type="range" min="1000" max="32000" step="1000" value="10000"><strong><span id="tokenBudgetValue">10,000</span> tokens</strong></div><div class="settings-range"><span>1,000</span><span>32,000</span></div><div class="tier-budget-list"><div><strong>Model 1 · Lite</strong><span>Up to 1,000 context tokens · 128 output tokens</span></div><div><strong>Model 2 · Balanced</strong><span>Up to 4,000 context tokens · 256 output tokens</span></div><div><strong>Model 3 · Advanced</strong><span>Up to 32,000 context tokens · 512 output tokens</span></div></div><p class="settings-warning">More tokens can increase latency and RAM usage. The generator's supported context window and available memory still apply.</p><button class="primary-button" id="saveSettings">Save settings</button></div></dialog>
-<dialog id="helpDialog"><div class="dialog-content"><button class="dialog-close" id="closeHelp" aria-label="Close">×</button><div class="heading-icon purple">ⓘ</div><h2>About ARAG Advanced</h2><p>ARAG follows the project architecture: document extraction and chunking, embeddings, vector retrieval, BM25 hybrid search, reciprocal-rank fusion, optional cross-encoder reranking, evidence checks, grounded generation and citations.</p><p>The three tiers use different retrieval pipelines and resource limits. The 75%, 85%, and 95% values are targets only; actual answer accuracy must be measured against a labelled benchmark.</p><button class="primary-button" id="gotIt">Got it</button></div></dialog>
+  <dialog id="settingsDialog">
+    <div class="dialog-content settings-content">
+      <button class="dialog-close" id="closeSettings" aria-label="Close">×</button>
+      <div class="heading-icon purple">⚙</div>
+      <h2>ARAG settings</h2>
+      <p>
+        Set the evidence-context token budget for each question. Each tier has
+        its own cap and output-token limit.
+      </p>
+      <label class="settings-label" for="tokenBudget">EVIDENCE CONTEXT BUDGET</label>
+      <div class="budget-row">
+        <input
+          id="tokenBudget"
+          type="range"
+          min="1000"
+          max="32000"
+          step="1000"
+          value="10000"
+        >
+        <strong><span id="tokenBudgetValue">10,000</span> tokens</strong>
+      </div>
+      <div class="settings-range">
+        <span>1,000</span>
+        <span>32,000</span>
+      </div>
+      <div class="tier-budget-list">
+        <div>
+          <strong>Model 1 · Lite</strong>
+          <span>Up to 1,000 context tokens · 128 output tokens</span>
+        </div>
+        <div>
+          <strong>Model 2 · Balanced</strong>
+          <span>Up to 4,000 context tokens · 256 output tokens</span>
+        </div>
+        <div>
+          <strong>Model 3 · Advanced</strong>
+          <span>Up to 32,000 context tokens · 512 output tokens</span>
+        </div>
+      </div>
+      <p class="settings-warning">
+        More tokens can increase latency and RAM usage. The generator's
+        supported context window and available memory still apply.
+      </p>
+      <button class="primary-button" id="saveSettings">Save settings</button>
+    </div>
+  </dialog>
+  <dialog id="helpDialog">
+    <div class="dialog-content">
+      <button class="dialog-close" id="closeHelp" aria-label="Close">×</button>
+      <div class="heading-icon purple">ⓘ</div>
+      <h2>About ARAG Advanced</h2>
+      <p>
+        ARAG follows the project architecture: document extraction and
+        chunking, embeddings, vector retrieval, BM25 hybrid search,
+        reciprocal-rank fusion, optional cross-encoder reranking, evidence
+        checks, grounded generation and citations.
+      </p>
+      <p>
+        The three tiers use different retrieval pipelines and resource limits.
+        The 75%, 85%, and 95% values are targets only; actual answer accuracy
+        must be measured against a labelled benchmark.
+      </p>
+      <button class="primary-button" id="gotIt">Got it</button>
+    </div>
+  </dialog>
   <script src="/static/app.js"></script>
 </body>
 </html>

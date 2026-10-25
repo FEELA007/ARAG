@@ -10,6 +10,7 @@ def generate_query_variants(query: str) -> list[str]:
 
     return list(dict.fromkeys(variants))
 
+
 def multi_query_search(query, search_fn, top_k=6):
     variants = generate_query_variants(query)
     merged = []

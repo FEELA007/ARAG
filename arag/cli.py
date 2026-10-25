@@ -1,6 +1,8 @@
 import argparse
+
 from arag.config import load_config
 from arag.ingestion.pipeline import ingest_directory
+
 
 def main():
     parser = argparse.ArgumentParser(description="ARAG CLI")
@@ -20,6 +22,7 @@ def main():
             cfg["ingestion"]["chunk_overlap"],
         )
         print(f"Ingested {len(chunks)} chunks.")
+
 
 if __name__ == "__main__":
     main()

@@ -1,15 +1,20 @@
 from pathlib import Path
-from pypdf import PdfReader
+
 from docx import Document
+from pypdf import PdfReader
 
 SUPPORTED = {".pdf", ".docx", ".txt"}
+
 
 def extract_pages(path: Path) -> list[tuple[int, str]]:
     ext = path.suffix.lower()
 
     if ext == ".pdf":
         reader = PdfReader(str(path))
-        return [(i + 1, page.extract_text() or "") for i, page in enumerate(reader.pages)]
+        return [
+            (index + 1, page.extract_text() or "")
+            for index, page in enumerate(reader.pages)
+        ]
 
     if ext == ".docx":
         doc = Document(str(path))

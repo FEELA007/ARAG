@@ -1,6 +1,7 @@
 from pathlib import Path
-from fastapi import FastAPI, UploadFile, File
 import shutil
+
+from fastapi import File, FastAPI, UploadFile
 
 from arag.config import load_config
 from arag.ingestion.pipeline import ingest_directory
@@ -8,9 +9,11 @@ from arag.ingestion.pipeline import ingest_directory
 app = FastAPI(title="ARAG API", version="0.1.0")
 config = load_config()
 
+
 @app.get("/health")
 def health():
     return {"status": "ok", "project": "ARAG"}
+
 
 @app.post("/ingest")
 async def ingest(file: UploadFile = File(...)):

@@ -1,13 +1,15 @@
 class LocalGenerator:
     def __init__(self, model_name: str, max_new_tokens=256, temperature=0.0):
         from transformers import pipeline
+
         self.pipe = pipeline("text2text-generation", model=model_name)
         self.max_new_tokens = max_new_tokens
         self.temperature = temperature
 
     def generate(self, query: str, chunks):
         context = "\n\n".join(
-            f"[{i+1}] {c.text}" for i, c in enumerate(chunks)
+            f"[{index}] {chunk.text}"
+            for index, chunk in enumerate(chunks, start=1)
         )
         prompt = (
             "Answer the question using only the supplied evidence. "
@@ -20,6 +22,7 @@ class LocalGenerator:
             do_sample=False,
         )[0]["generated_text"]
         return output.strip()
+
 
 class ExtractiveGenerator:
     def generate(self, query: str, chunks):

@@ -1,5 +1,12 @@
 import time
-from arag.evaluation.metrics import precision_at_k, recall_at_k, reciprocal_rank, ndcg_at_k
+
+from arag.evaluation.metrics import (
+    ndcg_at_k,
+    precision_at_k,
+    recall_at_k,
+    reciprocal_rank,
+)
+
 
 def evaluate_retrieval(retriever, dataset, k=5):
     rows = []
@@ -10,12 +17,14 @@ def evaluate_retrieval(retriever, dataset, k=5):
         ids = [i for i, _ in results]
         relevant = item.get("relevant_ids", [])
 
-        rows.append({
-            "query": item["query"],
-            "precision_at_k": precision_at_k(ids, relevant, k),
-            "recall_at_k": recall_at_k(ids, relevant, k),
-            "mrr": reciprocal_rank(ids, relevant),
-            "ndcg": ndcg_at_k(ids, relevant, k),
-            "latency_ms": latency * 1000,
-        })
+        rows.append(
+            {
+                "query": item["query"],
+                "precision_at_k": precision_at_k(ids, relevant, k),
+                "recall_at_k": recall_at_k(ids, relevant, k),
+                "mrr": reciprocal_rank(ids, relevant),
+                "ndcg": ndcg_at_k(ids, relevant, k),
+                "latency_ms": latency * 1000,
+            }
+        )
     return rows

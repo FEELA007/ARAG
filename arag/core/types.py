@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+
 @dataclass
 class Chunk:
     chunk_id: str
@@ -16,6 +17,7 @@ class Chunk:
     permissions: list[str] = field(default_factory=lambda: ["public"])
     metadata: dict[str, Any] = field(default_factory=dict)
 
+
 @dataclass
 class RetrievalResult:
     chunk: Chunk
@@ -23,6 +25,7 @@ class RetrievalResult:
     rank: int
     strategy: str
     rerank_score: float | None = None
+
 
 @dataclass
 class QueryResult:

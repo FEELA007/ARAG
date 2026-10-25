@@ -1,5 +1,6 @@
-from sentence_transformers import SentenceTransformer
 import numpy as np
+from sentence_transformers import SentenceTransformer
+
 
 class DenseRetriever:
     def __init__(self, model_name: str):
@@ -20,7 +21,10 @@ class DenseRetriever:
     def search(self, query: str, top_k: int = 8):
         if self.embeddings is None:
             raise RuntimeError("Dense index has not been built")
-        q = self.model.encode([query], normalize_embeddings=True)[0]
-        scores = np.asarray(self.embeddings) @ q
+        query_embedding = self.model.encode(
+            [query],
+            normalize_embeddings=True,
+        )[0]
+        scores = np.asarray(self.embeddings) @ query_embedding
         indices = np.argsort(-scores)[:top_k]
         return [(int(i), float(scores[i])) for i in indices]

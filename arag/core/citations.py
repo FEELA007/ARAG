@@ -10,5 +10,6 @@ def make_citation(chunk):
         "version": chunk.version,
     }
 
+
 def citations_for(chunks):
     return [make_citation(c) for c in chunks]

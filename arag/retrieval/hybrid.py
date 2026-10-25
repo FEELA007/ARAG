@@ -1,5 +1,6 @@
 from arag.retrieval.rrf import reciprocal_rank_fusion
 
+
 class HybridRetriever:
     def __init__(self, dense, bm25, rrf_k=60):
         self.dense = dense

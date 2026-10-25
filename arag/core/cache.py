@@ -2,6 +2,7 @@ import hashlib
 import json
 from pathlib import Path
 
+
 class SemanticCache:
     # Baseline exact-normalized cache. Embedding similarity can be added without changing the API.
     def __init__(self, path="data/index/cache.json"):
@@ -24,4 +25,7 @@ class SemanticCache:
 
     def set(self, query, value):
         self.data[self.key(query)] = value
-        self.path.write_text(json.dumps(self.data, ensure_ascii=False, indent=2), encoding="utf-8")
+        self.path.write_text(
+            json.dumps(self.data, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )

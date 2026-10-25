@@ -1,14 +1,19 @@
-from pathlib import Path
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 from arag.core.types import Chunk
 from arag.ingestion.cleaner import clean_text
 from arag.ingestion.chunker import chunk_text
-from arag.ingestion.extractors import extract_pages, SUPPORTED
-from arag.ingestion.versioning import document_id, chunk_id
+from arag.ingestion.extractors import SUPPORTED, extract_pages
+from arag.ingestion.versioning import chunk_id, document_id
 
-def ingest_document(path: str | Path, chunk_size=1000, overlap=150) -> list[Chunk]:
+
+def ingest_document(
+    path: str | Path,
+    chunk_size: int = 1000,
+    overlap: int = 150,
+) -> list[Chunk]:
     path = Path(path)
     if path.suffix.lower() not in SUPPORTED:
         raise ValueError(f"Unsupported document: {path}")
@@ -23,7 +28,9 @@ def ingest_document(path: str | Path, chunk_size=1000, overlap=150) -> list[Chun
         if not cleaned:
             continue
 
-        for index, text in enumerate(chunk_text(cleaned, chunk_size, overlap)):
+        for index, text in enumerate(
+            chunk_text(cleaned, chunk_size, overlap)
+        ):
             cid = chunk_id(doc_id, page, index, text)
             result.append(
                 Chunk(
@@ -40,13 +47,21 @@ def ingest_document(path: str | Path, chunk_size=1000, overlap=150) -> list[Chun
             )
     return result
 
-def ingest_directory(raw_dir: str | Path, output: str | Path, chunk_size=1000, overlap=150) -> list[Chunk]:
+
+def ingest_directory(
+    raw_dir: str | Path,
+    output: str | Path,
+    chunk_size: int = 1000,
+    overlap: int = 150,
+) -> list[Chunk]:
     raw_dir = Path(raw_dir)
     all_chunks = []
 
     for path in sorted(raw_dir.iterdir()):
         if path.is_file() and path.suffix.lower() in SUPPORTED:
-            all_chunks.extend(ingest_document(path, chunk_size, overlap))
+            all_chunks.extend(
+                ingest_document(path, chunk_size, overlap)
+            )
 
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -55,6 +70,7 @@ def ingest_directory(raw_dir: str | Path, output: str | Path, chunk_size=1000, o
             f.write(json.dumps(chunk.__dict__, ensure_ascii=False) + "\n")
 
     return all_chunks
+
 
 def load_chunks(path: str | Path) -> list[Chunk]:
     chunks = []

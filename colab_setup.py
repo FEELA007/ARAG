@@ -1,7 +1,4 @@
-# Run this from a Colab cell:
-# !git clone YOUR_REPOSITORY_URL
-# %cd ARAG
-# !pip install -r requirements-colab.txt
+# Run this script from a Colab cell to create the project data directories.
 
 from pathlib import Path
 Path("data/raw").mkdir(parents=True, exist_ok=True)

@@ -29,31 +29,53 @@ MIN_TOKEN_BUDGET = 1_000
 MAX_TOKEN_BUDGET = 32_000
 GENERATOR_MODEL = os.getenv("ARAG_GENERATOR_MODEL", "Qwen/Qwen2.5-1.5B-Instruct")
 
-# Accuracy values are research targets, not promises. They must be measured on the same labelled test set.
+# Accuracy values are research targets, not promises. Measure them on a
+# consistent labelled test set.
 TIERS: dict[str, dict[str, Any]] = {
     "model_1": {
-        "name": "ARAG Lite", "target_accuracy": 75, "max_files": 1,
+        "name": "ARAG Lite",
+        "target_accuracy": 75,
+        "max_files": 1,
         "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
-        "retrieval": "dense", "candidate_k": 4, "final_k": 3,
-        "context_cap": 1_000, "output_tokens": 128,
+        "retrieval": "dense",
+        "candidate_k": 4,
+        "final_k": 3,
+        "context_cap": 1_000,
+        "output_tokens": 128,
         "reranker_model": None,
         "description": "Dense semantic retrieval · low compute · one document",
     },
     "model_2": {
-        "name": "ARAG Balanced", "target_accuracy": 85, "max_files": 4,
+        "name": "ARAG Balanced",
+        "target_accuracy": 85,
+        "max_files": 4,
         "embedding_model": "BAAI/bge-small-en-v1.5",
-        "retrieval": "hybrid", "candidate_k": 10, "final_k": 5,
-        "context_cap": 4_000, "output_tokens": 256,
+        "retrieval": "hybrid",
+        "candidate_k": 10,
+        "final_k": 5,
+        "context_cap": 4_000,
+        "output_tokens": 256,
         "reranker_model": None,
         "description": "BGE embeddings · BM25 · reciprocal-rank fusion · up to four documents",
     },
     "model_3": {
-        "name": "ARAG Advanced", "target_accuracy": 95, "max_files": 10,
+        "name": "ARAG Advanced",
+        "target_accuracy": 95,
+        "max_files": 10,
         "embedding_model": "thenlper/gte-small",
-        "retrieval": "hybrid_rerank", "candidate_k": 18, "final_k": 7,
-        "context_cap": 32_000, "output_tokens": 512,
-        "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
-        "description": "GTE embeddings · multi-query hybrid retrieval · cross-encoder reranking · evidence check",
+        "retrieval": "hybrid_rerank",
+        "candidate_k": 18,
+        "final_k": 7,
+        "context_cap": 32_000,
+        "output_tokens": 512,
+        "reranker_model": os.getenv(
+            "ARAG_RERANKER_MODEL",
+            "cross-encoder/ms-marco-MiniLM-L-6-v2",
+        ),
+        "description": (
+            "GTE embeddings · multi-query hybrid retrieval · "
+            "cross-encoder reranking · evidence check"
+        ),
     },
 }
 
@@ -70,13 +92,47 @@ class QueryRequest(BaseModel):
     document_id: str = Field(min_length=1)
     question: str = Field(min_length=1, max_length=4_000)
     model: str = Field(default="model_1")
-    token_budget: int = Field(default=DEFAULT_TOKEN_BUDGET, ge=MIN_TOKEN_BUDGET, le=MAX_TOKEN_BUDGET)
+    token_budget: int = Field(
+        default=DEFAULT_TOKEN_BUDGET,
+        ge=MIN_TOKEN_BUDGET,
+        le=MAX_TOKEN_BUDGET,
+    )
 
 
 def _tier(model: str) -> dict[str, Any]:
     if model not in TIERS:
         raise HTTPException(status_code=400, detail="Choose model_1, model_2, or model_3.")
     return TIERS[model]
+
+
+def _get_gpu_metrics() -> dict[str, Any]:
+    try:
+        import torch
+
+        if not torch.cuda.is_available():
+            return {
+                "available": False,
+                "device": None,
+                "allocated_mb": None,
+                "reserved_mb": None,
+            }
+        return {
+            "available": True,
+            "device": torch.cuda.get_device_name(0),
+            "allocated_mb": round(
+                torch.cuda.memory_allocated(0) / (1024 ** 2), 2
+            ),
+            "reserved_mb": round(
+                torch.cuda.memory_reserved(0) / (1024 ** 2), 2
+            ),
+        }
+    except Exception:
+        return {
+            "available": False,
+            "device": None,
+            "allocated_mb": None,
+            "reserved_mb": None,
+        }
 
 
 def _load_embedder(model_name: str) -> SentenceTransformer:
@@ -105,7 +161,11 @@ def _rrf(rankings: list[list[int]], k: int = 60) -> list[tuple[int, float]]:
 def _query_variants(question: str) -> list[str]:
     variants = [question]
     # Lightweight decomposition for conjunction/comparison questions; no external API.
-    parts = re.split(r"\b(?:and|also|versus|vs\.?|compare|compared with|difference between)\b", question, flags=re.I)
+    parts = re.split(
+        r"\b(?:and|also|versus|vs\.?|compare|compared with|difference between)\b",
+        question,
+        flags=re.I,
+    )
     for part in parts:
         part = part.strip(" ?.,;:")
         if len(_tokens(part)) >= 3 and part.lower() not in {v.lower() for v in variants}:
@@ -113,16 +173,29 @@ def _query_variants(question: str) -> list[str]:
     return variants[:4]
 
 
-def _build_index(session: dict[str, Any], model: str) -> dict[str, Any]:
+def _build_index(
+    session: dict[str, Any],
+    model: str,
+) -> dict[str, Any]:
     cache = session["indexes"]
     if model in cache:
         return cache[model]
     cfg = _tier(model)
     chunks = session["chunks"]
     if not chunks:
-        raise HTTPException(status_code=422, detail="No text chunks are available. Re-upload readable documents.")
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "No text chunks are available. "
+                "Re-upload readable documents."
+            ),
+        )
     embedder = _load_embedder(cfg["embedding_model"])
-    vectors = embedder.encode([c.text for c in chunks], normalize_embeddings=True, show_progress_bar=False)
+    vectors = embedder.encode(
+        [chunk.text for chunk in chunks],
+        normalize_embeddings=True,
+        show_progress_bar=False,
+    )
     index = {
         "chunks": chunks,
         "embedder": embedder,
@@ -134,42 +207,74 @@ def _build_index(session: dict[str, Any], model: str) -> dict[str, Any]:
     return index
 
 
-def _dense_search(index: dict[str, Any], query: str, top_k: int) -> list[tuple[int, float]]:
-    qv = index["embedder"].encode([query], normalize_embeddings=True, show_progress_bar=False)[0]
-    scores = index["vectors"] @ np.asarray(qv, dtype=np.float32)
-    return [(int(i), float(scores[i])) for i in np.argsort(-scores)[:top_k]]
+def _dense_search(
+    index: dict[str, Any],
+    query: str,
+    top_k: int,
+) -> list[tuple[int, float]]:
+    query_vector = index["embedder"].encode(
+        [query],
+        normalize_embeddings=True,
+        show_progress_bar=False,
+    )[0]
+    scores = index["vectors"] @ np.asarray(query_vector, dtype=np.float32)
+    return [
+        (int(chunk_index), float(scores[chunk_index]))
+        for chunk_index in np.argsort(-scores)[:top_k]
+    ]
 
 
-def _lexical_search(index: dict[str, Any], query: str, top_k: int) -> list[tuple[int, float]]:
+def _lexical_search(
+    index: dict[str, Any],
+    query: str,
+    top_k: int,
+) -> list[tuple[int, float]]:
     scores = index["bm25"].get_scores(_tokens(query))
-    ids = sorted(range(len(scores)), key=lambda i: float(scores[i]), reverse=True)[:top_k]
-    return [(int(i), float(scores[i])) for i in ids]
+    ranked_indices = sorted(
+        range(len(scores)),
+        key=lambda chunk_index: float(scores[chunk_index]),
+        reverse=True,
+    )[:top_k]
+    return [
+        (int(chunk_index), float(scores[chunk_index]))
+        for chunk_index in ranked_indices
+    ]
 
 
 def _get_reranker(model_name: str):
     if model_name not in _RERANKERS:
         from sentence_transformers import CrossEncoder
+
         _RERANKERS[model_name] = CrossEncoder(model_name)
     return _RERANKERS[model_name]
 
 
-def _retrieve(question: str, model: str, index: dict[str, Any]) -> list[dict[str, Any]]:
+def _retrieve(
+    question: str,
+    model: str,
+    index: dict[str, Any],
+) -> list[dict[str, Any]]:
     cfg = _tier(model)
     chunks = index["chunks"]
     candidate_k = min(cfg["candidate_k"], len(chunks))
     dense = _dense_search(index, question, candidate_k)
     dense_score = {i: score for i, score in dense}
+    query_variants = (
+        _query_variants(question)
+        if cfg["retrieval"] == "hybrid_rerank"
+        else [question]
+    )
 
     if cfg["retrieval"] == "dense":
         ranked = [(i, score) for i, score in dense]
         fused_scores = {i: score for i, score in ranked}
     else:
-        rankings: list[list[int]] = [ [i for i, _ in dense] ]
+        rankings: list[list[int]] = [[i for i, _ in dense]]
         lexical = _lexical_search(index, question, candidate_k)
         rankings.append([i for i, _ in lexical])
         # Advanced tier fans out a small set of deterministic query views, then fuses all rankings.
         if cfg["retrieval"] == "hybrid_rerank":
-            for variant in _query_variants(question)[1:]:
+            for variant in query_variants[1:]:
                 rankings.append([i for i, _ in _dense_search(index, variant, candidate_k)])
                 rankings.append([i for i, _ in _lexical_search(index, variant, candidate_k)])
         ranked = _rrf(rankings)
@@ -181,7 +286,11 @@ def _retrieve(question: str, model: str, index: dict[str, Any]) -> list[dict[str
         reranker = _get_reranker(cfg["reranker_model"])
         pairs = [(question, chunks[i].text) for i in candidates]
         scores = reranker.predict(pairs)
-        reranked = sorted(zip(candidates, scores), key=lambda item: float(item[1]), reverse=True)
+        reranked = sorted(
+            zip(candidates, scores),
+            key=lambda item: float(item[1]),
+            reverse=True,
+        )
         rerank_scores = {i: float(score) for i, score in reranked}
         candidates = [i for i, _ in reranked]
 
@@ -189,7 +298,9 @@ def _retrieve(question: str, model: str, index: dict[str, Any]) -> list[dict[str
     for rank, i in enumerate(candidates[:cfg["final_k"]], start=1):
         chunk = chunks[i]
         results.append({
-            "index": i, "chunk": chunk, "rank": rank,
+            "index": i,
+            "chunk": chunk,
+            "rank": rank,
             "score": float(dense_score.get(i, 0.0)),
             "dense_score": float(dense_score.get(i, 0.0)),
             "fusion_score": float(fused_scores.get(i, 0.0)),
@@ -207,22 +318,33 @@ def _load_generator():
     try:
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
+
         tokenizer = AutoTokenizer.from_pretrained(GENERATOR_MODEL)
         model = AutoModelForCausalLM.from_pretrained(GENERATOR_MODEL)
         device = "cuda" if torch.cuda.is_available() else "cpu"
         model.to(device)
         model.eval()
-        _GENERATOR = {"tokenizer": tokenizer, "model": model, "torch": torch, "device": device}
+        _GENERATOR = {
+            "tokenizer": tokenizer,
+            "model": model,
+            "torch": torch,
+            "device": device,
+        }
         return _GENERATOR
     except Exception as exc:
         _GENERATOR_LOAD_ERROR = (
             f"Could not load local generator '{GENERATOR_MODEL}': {exc}. "
-            "Check internet access for the first model download, available RAM/disk, and installed Transformers/PyTorch versions."
+            "Check internet access for the first model download, available "
+            "RAM/disk, and installed Transformers/PyTorch versions."
         )
         raise RuntimeError(_GENERATOR_LOAD_ERROR) from exc
 
 
-def _select_context(hits: list[dict[str, Any]], token_budget: int, tokenizer: Any) -> list[dict[str, Any]]:
+def _select_context(
+    hits: list[dict[str, Any]],
+    token_budget: int,
+    tokenizer: Any,
+) -> list[dict[str, Any]]:
     selected = []
     used = 0
     for hit in hits:
@@ -246,31 +368,44 @@ def _select_context(hits: list[dict[str, Any]], token_budget: int, tokenizer: An
     return selected
 
 
-def _generate(question: str, hits: list[dict[str, Any]], model: str, user_budget: int) -> tuple[str, list[dict[str, Any]], str | None, int]:
+def _generate(
+    question: str,
+    hits: list[dict[str, Any]],
+    model: str,
+    user_budget: int,
+) -> tuple[str, list[dict[str, Any]], str | None, int]:
     cfg = _tier(model)
     effective_budget = min(user_budget, int(cfg["context_cap"]))
     try:
-        t0 = time.perf_counter()
         gen = _load_generator()
-        print(f"Model load/cache retrieval: {time.perf_counter() - t0:.3f}s")
         tokenizer, llm = gen["tokenizer"], gen["model"]
         context_hits = _select_context(hits, effective_budget, tokenizer)
         if not context_hits:
-            return "I could not find enough relevant evidence to answer this question from the uploaded documents.", [], None, 0
+            return (
+                "I could not find enough relevant evidence to answer this question "
+                "from the uploaded documents.",
+                [],
+                None,
+                0,
+            )
         evidence = "\n\n".join(
-            f"[S{i}] Source: {h['chunk'].filename}, page {h['chunk'].page or 'not available'}\n{h.get('context_text', h['chunk'].text)}"
-            for i, h in enumerate(context_hits, start=1)
+            (
+                f"[S{index}] Source: {hit['chunk'].filename}, "
+                f"page {hit['chunk'].page or 'not available'}\n"
+                f"{hit.get('context_text', hit['chunk'].text)}"
+            )
+            for index, hit in enumerate(context_hits, start=1)
         )
         system = (
-           "You are ARAG, a helpful, conversational document assistant. "
-    "Answer naturally, clearly, and directly, like ChatGPT. "
-    "Use the supplied evidence to answer document-related questions. "
-    "Never invent facts or present outside knowledge as document content. "
-    "If evidence is insufficient, say so. "
-    "Explain details when useful, but never dump entire document chunks. "
-    "Cite factual claims using source labels such as [S1]. "
-    "Use paragraphs or bullets when appropriate. "
-    "Return only the answer."
+            "You are ARAG, a helpful, conversational document assistant. "
+            "Answer naturally, clearly, and directly, like ChatGPT. "
+            "Use the supplied evidence to answer document-related questions. "
+            "Never invent facts or present outside knowledge as document content. "
+            "If evidence is insufficient, say so. "
+            "Explain details when useful, but never dump entire document chunks. "
+            "Cite factual claims using source labels such as [S1]. "
+            "Use paragraphs or bullets when appropriate. "
+            "Return only the answer."
         )
         user = f"""Use only the evidence below to answer the question.
 
@@ -306,7 +441,6 @@ Answer:"""
             prompt_ids = prompt_ids[:, -max_input:]
         prompt_ids = prompt_ids.to(gen["device"])
         with gen["torch"].inference_mode():
-            t0 = time.perf_counter()
             output = llm.generate(
                 input_ids=prompt_ids,
                 max_new_tokens=int(cfg["output_tokens"]),
@@ -314,23 +448,30 @@ Answer:"""
                 repetition_penalty=1.05,
                 pad_token_id=tokenizer.eos_token_id,
             )
-            print(f"Generation time: {time.perf_counter() - t0:.3f}s")
         generated_ids = output[0][prompt_ids.shape[-1]:]
         answer = tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
         if not answer:
             answer = "I could not produce a grounded answer. Try a more specific question."
-        # If the generator omitted explicit citations, append a traceable source list rather than fabricating citations.
+        # Keep citations traceable when the generator omits them.
         if context_hits and not re.search(r"\[S\d+\]", answer):
-            answer += "\n\nSources consulted: " + ", ".join(f"[S{i}]" for i in range(1, len(context_hits) + 1))
+            source_labels = ", ".join(
+                f"[S{index}]" for index in range(1, len(context_hits) + 1)
+            )
+            answer += f"\n\nSources consulted: {source_labels}"
         return answer, context_hits, None, int(prompt_ids.shape[-1])
     except Exception as exc:
         import traceback
         traceback.print_exc()
-        # Explicitly labelled extractive fallback keeps the local demo usable if a large model cannot load.
+        # Labeled fallback keeps the demo usable when local generation fails.
         fallback_hits = hits[: min(2, len(hits))]
         if fallback_hits:
-            fallback = "Generation model unavailable; showing retrieved evidence instead:\n\n" + "\n\n".join(
-                f"[S{i}] {h['chunk'].text}" for i, h in enumerate(fallback_hits, start=1)
+            cited_hits = "\n\n".join(
+                f"[S{index}] {hit['chunk'].text}"
+                for index, hit in enumerate(fallback_hits, start=1)
+            )
+            fallback = (
+                "Generation model unavailable; showing retrieved evidence instead:\n\n"
+                f"{cited_hits}"
             )
         else:
             fallback = "I could not find enough relevant evidence to answer this question."
@@ -349,7 +490,20 @@ def _evidence_sufficient(question: str, hits: list[dict[str, Any]]) -> bool:
 
 @app.get("/api/health")
 def health() -> dict[str, Any]:
-    return {"status": "ok", "service": "ARAG Advanced API", "generator_model": GENERATOR_MODEL}
+    try:
+        import torch
+
+        gpu = torch.cuda.get_device_name(0) if torch.cuda.is_available() else None
+        cuda_available = bool(torch.cuda.is_available())
+    except Exception:
+        gpu, cuda_available = None, False
+    return {
+        "status": "ok",
+        "service": "ARAG Advanced API",
+        "generator_model": GENERATOR_MODEL,
+        "cuda_available": cuda_available,
+        "gpu": gpu,
+    }
 
 
 @app.get("/api/config")
@@ -363,7 +517,10 @@ def get_config() -> dict[str, Any]:
             key: {k: v for k, v in cfg.items() if k not in {"reranker_model"}}
             for key, cfg in TIERS.items()
         },
-        "accuracy_notice": "75%, 85%, and 95% are target values for evaluation, not measured or guaranteed accuracy.",
+        "accuracy_notice": (
+            "75%, 85%, and 95% are target values for evaluation, not measured "
+            "or guaranteed accuracy."
+        ),
     }
 
 
@@ -376,7 +533,13 @@ async def upload_documents(
     if not files:
         raise HTTPException(status_code=400, detail="Choose at least one document.")
     if len(files) > int(cfg["max_files"]):
-        raise HTTPException(status_code=413, detail=f"{cfg['name']} supports up to {cfg['max_files']} document(s). Choose another tier or remove files.")
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"{cfg['name']} supports up to {cfg['max_files']} document(s). "
+                "Choose another tier or remove files."
+            ),
+        )
 
     all_chunks: list[Any] = []
     file_info = []
@@ -386,17 +549,32 @@ async def upload_documents(
             filename = Path(uploaded.filename or "document").name
             suffix = Path(filename).suffix.lower()
             if suffix not in ALLOWED_EXTENSIONS:
-                raise HTTPException(status_code=400, detail=f"Unsupported file type for '{filename}'. Use PDF, DOCX, or TXT.")
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Unsupported file type for '{filename}'. "
+                        "Use PDF, DOCX, or TXT."
+                    ),
+                )
             content = await uploaded.read(MAX_FILE_BYTES + 1)
             if not content:
                 raise HTTPException(status_code=400, detail=f"'{filename}' is empty.")
             if len(content) > MAX_FILE_BYTES:
-                raise HTTPException(status_code=413, detail=f"'{filename}' exceeds the 10 MB per-file limit.")
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"'{filename}' exceeds the 10 MB per-file limit.",
+                )
             total_bytes += len(content)
             temp_path = UPLOAD_DIR / f"{uuid.uuid4().hex}{suffix}"
             temp_path.write_bytes(content)
             try:
-                chunks = ingest_document(temp_path, chunk_size=700 if model == "model_1" else 850, overlap=100 if model == "model_1" else 140)
+                chunk_size = 700 if model == "model_1" else 850
+                overlap = 100 if model == "model_1" else 140
+                chunks = ingest_document(
+                    temp_path,
+                    chunk_size=chunk_size,
+                    overlap=overlap,
+                )
             finally:
                 temp_path.unlink(missing_ok=True)
             for chunk in chunks:
@@ -404,9 +582,19 @@ async def upload_documents(
                 chunk.source = filename
                 chunk.metadata = {**(chunk.metadata or {}), "original_filename": filename}
             if not chunks:
-                raise HTTPException(status_code=422, detail=f"No readable text found in '{filename}'. Scanned PDFs may need OCR first.")
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        f"No readable text found in '{filename}'. "
+                        "Scanned PDFs may need OCR first."
+                    ),
+                )
             all_chunks.extend(chunks)
-            file_info.append({"filename": filename, "size_bytes": len(content), "chunk_count": len(chunks)})
+            file_info.append({
+                "filename": filename,
+                "size_bytes": len(content),
+                "chunk_count": len(chunks),
+            })
 
         document_id = uuid.uuid4().hex
         SESSIONS[document_id] = {
@@ -436,21 +624,84 @@ def query_documents(request: QueryRequest) -> dict[str, Any]:
     cfg = _tier(request.model)
     session = SESSIONS.get(request.document_id)
     if not session:
-        raise HTTPException(status_code=404, detail="Document session not found. Re-upload your documents after restarting the backend.")
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Document session not found. Re-upload your documents after "
+                "restarting the backend."
+            ),
+        )
     if len(session["files"]) > cfg["max_files"]:
-        raise HTTPException(status_code=400, detail=f"{cfg['name']} supports up to {cfg['max_files']} document(s), but this session has {len(session['files'])}. Select a higher tier or upload fewer documents.")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"{cfg['name']} supports up to {cfg['max_files']} document(s), "
+                f"but this session has {len(session['files'])}. "
+                "Select a higher tier or upload fewer documents."
+            ),
+        )
 
     started = time.perf_counter()
+    timings = {
+        "index_build_ms": 0.0,
+        "retrieval_ms": 0.0,
+        "generation_ms": 0.0,
+    }
     try:
+        stage_start = time.perf_counter()
         index = _build_index(session, request.model)
+        timings["index_build_ms"] = round(
+            (time.perf_counter() - stage_start) * 1000, 2
+        )
+        # Measure initial and corrective retrieval, including reranking.
+        stage_start = time.perf_counter()
         hits = _retrieve(request.question, request.model, index)
+        corrective_attempted = False
+        # Advanced tier: one controlled corrective pass with alternative query views
+        # when the first pass does not pass the evidence sufficiency heuristic.
+        if request.model == "model_3" and not _evidence_sufficient(request.question, hits):
+            corrective_attempted = True
+            retry_hits = []
+            seen = {h["chunk"].chunk_id for h in hits}
+            for variant in _query_variants(request.question)[1:]:
+                for candidate in _retrieve(variant, request.model, index):
+                    cid = candidate["chunk"].chunk_id
+                    if cid not in seen:
+                        retry_hits.append(candidate)
+                        seen.add(cid)
+            combined = hits + retry_hits
+            combined.sort(
+                key=lambda hit: (
+                    hit.get("rerank_score")
+                    if hit.get("rerank_score") is not None
+                    else hit.get("fusion_score", 0.0)
+                ),
+                reverse=True,
+            )
+            hits = combined[:TIERS[request.model]["final_k"]]
+        timings["retrieval_ms"] = round(
+            (time.perf_counter() - stage_start) * 1000, 2
+        )
         if not _evidence_sufficient(request.question, hits):
-            answer = "I could not find sufficient evidence in the uploaded documents to answer this confidently. Try rephrasing the question or uploading a document that covers this topic."
+            answer = (
+                "I could not find sufficient evidence in the uploaded documents "
+                "to answer this confidently. The documents may not contain the "
+                "requested information."
+            )
             used_hits, generation_warning, input_tokens = [], None, 0
             status = "insufficient_evidence"
         else:
             effective_budget = min(request.token_budget, int(cfg["context_cap"]))
-            answer, used_hits, generation_warning, input_tokens = _generate(request.question, hits, request.model, effective_budget)
+            stage_start = time.perf_counter()
+            answer, used_hits, generation_warning, input_tokens = _generate(
+                request.question,
+                hits,
+                request.model,
+                effective_budget,
+            )
+            timings["generation_ms"] = round(
+                (time.perf_counter() - stage_start) * 1000, 2
+            )
             status = "answered" if not generation_warning else "extractive_fallback"
     except HTTPException:
         raise
@@ -468,7 +719,13 @@ def query_documents(request: QueryRequest) -> dict[str, Any]:
             "chunk_id": chunk.chunk_id,
             "score": round(float(hit.get("dense_score", 0.0)), 4),
             "fusion_score": round(float(hit.get("fusion_score", 0.0)), 6),
-            "rerank_score": round(float(hit["rerank_score"]), 4) if hit.get("rerank_score") is not None else None,
+            "rerank_score": (
+                round(float(hit["rerank_score"]), 4)
+                if hit.get("rerank_score") is not None
+                else None
+            ),
+            "bm25_score": round(float(hit.get("bm25_score", 0.0)), 4),
+            "retrieval_trace": hit.get("retrieval_trace", {}),
         })
     latency_ms = round((time.perf_counter() - started) * 1000, 1)
     effective_budget = min(request.token_budget, int(cfg["context_cap"]))
@@ -488,11 +745,76 @@ def query_documents(request: QueryRequest) -> dict[str, Any]:
         "document_count": len(session["files"]),
         "files": session["files"],
         "latency_ms": latency_ms,
+        "timings": timings,
+        "gpu": _get_gpu_metrics(),
+        "generator_model": GENERATOR_MODEL,
         "requested_token_budget": request.token_budget,
         "effective_context_budget": effective_budget,
         "generation_input_tokens": input_tokens,
         "output_token_limit": cfg["output_tokens"],
         "generation_warning": generation_warning,
+        "corrective_retrieval_attempted": corrective_attempted,
+        "retrieval_trace": {
+            "stages": [
+                {
+                    "name": "Dense retrieval",
+                    "status": "complete",
+                    "detail": index["embedding_model"],
+                },
+                {
+                    "name": "BM25 keyword retrieval",
+                    "status": (
+                        "complete" if cfg["retrieval"] != "dense" else "skipped"
+                    ),
+                    "detail": (
+                        "Keyword candidates"
+                        if cfg["retrieval"] != "dense"
+                        else "Lite tier uses dense retrieval only"
+                    ),
+                },
+                {
+                    "name": "RRF fusion",
+                    "status": (
+                        "complete" if cfg["retrieval"] != "dense" else "skipped"
+                    ),
+                    "detail": (
+                        "Reciprocal-rank fusion"
+                        if cfg["retrieval"] != "dense"
+                        else "Not used in Lite"
+                    ),
+                },
+                {
+                    "name": "Cross-encoder reranking",
+                    "status": "complete" if cfg["reranker_model"] else "skipped",
+                    "detail": (
+                        cfg["reranker_model"] or "Not configured for this tier"
+                    ),
+                },
+                {
+                    "name": "Corrective retrieval",
+                    "status": (
+                        "attempted" if corrective_attempted else "not_needed"
+                    ),
+                    "detail": (
+                        "Alternative query views tried"
+                        if corrective_attempted
+                        else "No retry triggered"
+                    ),
+                },
+                {
+                    "name": "Evidence check",
+                    "status": (
+                        "passed" if status == "answered" else "failed_or_fallback"
+                    ),
+                    "detail": status,
+                },
+            ],
+            "query_variants": (
+                _query_variants(request.question)
+                if request.model == "model_3"
+                else [request.question]
+            ),
+        },
     }
 
 

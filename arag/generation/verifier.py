@@ -1,5 +1,3 @@
-from arag.core.answer import evidence_confidence
-
 def verify_answer(answer: str, chunks) -> dict:
     if not answer or not chunks:
         return {"supported": False, "confidence": 0.0, "reason": "No answer/evidence"}

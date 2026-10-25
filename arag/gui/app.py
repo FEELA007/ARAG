@@ -1,5 +1,5 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import streamlit as st
 
@@ -7,10 +7,9 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from arag.generation.generator import ExtractiveGenerator
 from arag.ingestion.pipeline import ingest_document
 from arag.retrieval.dense import DenseRetriever
-from arag.generation.generator import ExtractiveGenerator
-from arag.core.citations import citations_for
 
 MAX_FILE_BYTES = 10 * 1024 * 1024  # 10 MB
 SUPPORTED_TYPES = ["pdf", "docx", "txt"]
@@ -19,7 +18,10 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 st.set_page_config(page_title="ARAG Lite", page_icon="A", layout="wide")
 st.title("ARAG Lite")
 st.caption("A lightweight, single-document Retrieval-Augmented Generation prototype")
-st.info("Upload one document (PDF, DOCX, or TXT), up to 10 MB. This baseline uses MiniLM dense retrieval and evidence excerpts.")
+st.info(
+    "Upload one document (PDF, DOCX, or TXT), up to 10 MB. "
+    "This baseline uses MiniLM dense retrieval and evidence excerpts."
+)
 
 with st.sidebar:
     st.header("Configuration")
@@ -42,7 +44,10 @@ if uploaded is not None:
         st.stop()
 
     if st.button("Process document", type="primary"):
-        with st.spinner("Extracting text and building the retrieval index. The first run may download MiniLM."):
+        with st.spinner(
+            "Extracting text and building the retrieval index. "
+            "The first run may download MiniLM."
+        ):
             raw_dir = ROOT / "data" / "raw"
             raw_dir.mkdir(parents=True, exist_ok=True)
             # Keep only the currently selected document to prevent mixing old files.
@@ -77,13 +82,15 @@ if chunks and retriever:
     left.metric("Loaded document", st.session_state.get("arag_filename", "1 file"))
     right.metric("Text chunks", st.session_state.get("arag_chunk_count", len(chunks)))
 
-    question = st.text_input("Ask a question about the document", placeholder="For example: What are the main findings?")
+    question = st.text_input(
+        "Ask a question about the document",
+        placeholder="For example: What are the main findings?",
+    )
     if st.button("Get answer") and question.strip():
         with st.spinner("Finding relevant passages..."):
             hits = retriever.search(question.strip(), top_k=min(3, len(chunks)))
             evidence_chunks = [chunks[idx] for idx, _score in hits]
             answer = ExtractiveGenerator().generate(question.strip(), evidence_chunks)
-            citations = citations_for(evidence_chunks)
 
         st.subheader("Answer from retrieved evidence")
         st.write(answer)
@@ -91,10 +98,25 @@ if chunks and retriever:
         for i, (idx, score) in enumerate(hits, start=1):
             chunk = chunks[idx]
             page = getattr(chunk, "page", None)
-            st.markdown(f"**{i}. {getattr(chunk, 'filename', st.session_state.get('arag_filename', 'Document'))}** — page {page if page else 'not available'} · similarity `{score:.3f}`")
+            filename = getattr(
+                chunk,
+                "filename",
+                st.session_state.get("arag_filename", "Document"),
+            )
+            page_label = page if page else "not available"
+            st.markdown(
+                f"**{i}. {filename}** — page {page_label} · "
+                f"similarity `{score:.3f}`"
+            )
             st.write(chunk.text[:1200] + ("…" if len(chunk.text) > 1200 else ""))
             st.divider()
-        st.caption("Similarity is not an accuracy percentage. Verify answers against the source document.")
+        st.caption(
+            "Similarity is not an accuracy percentage. "
+            "Verify answers against the source document."
+        )
 
 st.markdown("---")
-st.caption("ARAG Lite is a baseline prototype. Measure accuracy on a labelled set of questions before reporting a percentage.")
+st.caption(
+    "ARAG Lite is a baseline prototype. Measure accuracy on a labelled set "
+    "of questions before reporting a percentage."
+)
